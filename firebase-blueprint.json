@@ -1,0 +1,50 @@
+{
+  "entities": {
+    "CorpusItem": {
+      "title": "Corpus Item",
+      "description": "A document or text source ingested into the CIS knowledge base.",
+      "type": "object",
+      "properties": {
+        "title": { "type": "string", "description": "The title of the document." },
+        "author": { "type": "string", "description": "The author of the document." },
+        "type": { "type": "string", "description": "The category of the document (e.g., Historical, Blueprint)." },
+        "content": { "type": "string", "description": "The full text content of the document." },
+        "status": { "type": "string", "enum": ["ingested", "processing", "queued"] },
+        "date": { "type": "string", "format": "date", "description": "The date of ingestion." }
+      },
+      "required": ["title", "author", "type", "content", "status", "date"]
+    },
+    "Finding": {
+      "title": "Intelligence Finding",
+      "description": "A specific fact or observation extracted from substrates and requiring corroboration.",
+      "type": "object",
+      "properties": {
+        "description": { "type": "string", "description": "The core finding text." },
+        "sources": { 
+          "type": "array", 
+          "items": { 
+            "type": "object",
+            "properties": {
+              "name": { "type": "string" },
+              "verified": { "type": "boolean" }
+            }
+          } 
+        },
+        "status": { "type": "string", "enum": ["confirmed", "pending", "disputed"] },
+        "confidence": { "type": "number", "description": "Percentage confidence score." },
+        "evidence": { "type": "string", "description": "Supporting text snippet." }
+      },
+      "required": ["description", "sources", "status", "confidence"]
+    }
+  },
+  "firestore": {
+    "/corpus/{docId}": {
+      "schema": "CorpusItem",
+      "description": "Collection of ingested knowledge sources."
+    },
+    "/findings/{findingId}": {
+      "schema": "Finding",
+      "description": "Collection of intelligence findings and their corroboration states."
+    }
+  }
+}

@@ -1,0 +1,68 @@
+rules_version = '2';
+service cloud.firestore {
+  match /databases/{database}/documents {
+    // ===============================================================
+    // Assumed Data Model
+    // ===============================================================
+    //
+    // Collection: corpus
+    // Fields:
+    //   - title: string (required)
+    //   - author: string (required)
+    //   - type: string (required)
+    //   - content: string (required, < 1MB)
+    //   - status: string (required, enum: ingested, processing, queued)
+    //   - date: string (required)
+    //
+    // Collection: findings
+    // Fields:
+    //   - description: string (required)
+    //   - sources: list (required)
+    //   - status: string (required, enum: confirmed, pending, disputed)
+    //   - confidence: number (required, 0-100)
+    //   - evidence: string (optional)
+    //
+    // ===============================================================
+
+    // Helper Functions
+    function isAuthenticated() {
+      return request.auth != null;
+    }
+
+    function isAdmin() {
+      return isAuthenticated() && 
+        (request.auth.token.email == "hellotherepaulchavez@gmail.com" && request.auth.token.email_verified == true);
+    }
+
+    function isValidCorpusItem(data) {
+      return data.keys().hasAll(['title', 'author', 'type', 'content', 'status', 'date']) &&
+             data.title is string && data.title.size() < 200 &&
+             data.author is string && data.author.size() < 100 &&
+             data.type is string && data.type.size() < 50 &&
+             data.content is string && data.content.size() < 1000000 &&
+             data.status in ['ingested', 'processing', 'queued'] &&
+             data.date is string;
+    }
+
+    function isValidFinding(data) {
+      return data.keys().hasAll(['description', 'sources', 'status', 'confidence']) &&
+             data.description is string && data.description.size() < 1000 &&
+             data.sources is list &&
+             data.status in ['confirmed', 'pending', 'disputed'] &&
+             data.confidence is number && data.confidence >= 0 && data.confidence <= 100;
+    }
+
+    // Rules
+    match /corpus/{docId} {
+      allow read: if isAuthenticated();
+      allow create, update: if isAdmin() && isValidCorpusItem(request.resource.data);
+      allow delete: if isAdmin();
+    }
+
+    match /findings/{findingId} {
+      allow read: if isAuthenticated();
+      allow create, update: if isAdmin() && isValidFinding(request.resource.data);
+      allow delete: if isAdmin();
+    }
+  }
+}
